@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <title>MySQL索引数据结构 // My New Hugo Site</title>
+    <meta charset="utf-8" />
+    <meta name="generator" content="Hugo 0.74.3" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="John Doe" />
+    <meta name="description" content="" />
+    <link rel="stylesheet" href="https://changbin93.github.io/css/main.min.88e7083eff65effb7485b6e6f38d10afbec25093a6fac42d734ce9024d3defbd.css" />
+
+    
+    <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="MySQL索引数据结构"/>
+<meta name="twitter:description" content="MySQL索引底层数据结构与算法  什么是索引
+ ==索引==是帮助MySQL高效获取数据的==排好序==的==数据结构==
+那么有哪些数据结构可以做索引呢？
+ 二叉树 红黑树 Hash表 B-Tree  二叉搜索树的问题在于如果插入的数据是递增的话，就会形成一个链表结构，这样查找的效率就大大降低。
+那用二叉平衡树，比如红黑树能解决吗，红黑树不会产生上述现象，但是由于红黑树的非叶子结点下只能存储左右两个结点，如果数据量很大，红黑树的树高会很高，这样需要对磁盘进行多次IO，效率依然不高。
+有没有什么数据结构能解决？首先我们来看B树。
+ B-Tree
+  叶子结点具有相同的深度，叶子结点的指针为空 所有索引元素不重复 叶子结点中的数据索引从左到右递增排列  那么为什么B树依然不是最好的选择呢？
+MySQL的数据都是存放在磁盘上的，索引也是，mysql每进行一次磁盘IO只能获取一页的数据，一页在MySQL中大概是16KB，一个索引的数据越大，那么一页能存储的索引就越少，而B树每个索引存储了数据的全部信息，这就意味着每一页存储的索引变少了。于是对B树进行了改进。
+ B&#43; 树
+  非叶子节点不存储data，只存储索引(冗余)，可以放更多的索引 叶子结点包含所有索引字段 叶子结点用指针链接，提高区间访问的性能  B&#43; 树的非叶子结点能存放更对索引，这样树的高度就降低了，进行磁盘IO的次数也变少，大大提高了搜索效率。
+最后来说说hash，hash也是一种非常高效的数据结构，对索引的key进行一次hash计算就能定位出数据存储的位置，很多时候hash索引要比B&#43;树索引更高效。但是hash不支持范围查询，并且有hash冲突问题。
+MyISAM存储引擎索引实现 MyISAM索引文件和数据文件是分离的(非聚集索引)
+叶子结点上只存储了索引字段和一个指针，指针指向在另一个文件中的数据。
+InnoDB存储引擎索引实现(聚集索引)  表数据文件本身就是按B&#43;树组织的一个索引结构文件 叶子结点包含了完整的数据记录   为什么建议InnoDB表必须建主键，并且推荐使用整形的自增主键
+ 如果设置了主键，那么InnoDB会选择主键作为聚集索引、如果没有显式定义主键，则InnoDB会选择第一个不包含有NULL值的唯一索引作为主键索引、如果也没有这样的唯一索引，则InnoDB会选择内置6字节长的ROWID作为隐含的聚集索引(ROWID随着行记录的写入而主键递增)。
+如果表使用自增主键 那么每次插入新的记录，记录就会顺序添加到当前索引节点的后续位置，主键的顺序按照数据记录的插入顺序排列，自动有序。当一页写满，就会自动开辟一个新的页
+如果使用非自增主键（如果身份证号或学号等） 由于每次插入主键的值近似于随机，因此每次新纪录都要被插到现有索引页得中间某个位置，此时MySQL不得不为了将新记录插到合适位置而移动数据，甚至目标页面可能已经被回写到磁盘上而从缓存中清掉，此时又要从磁盘上读回来，这增加了很多开销，同时频繁的移动、分页操作造成了大量的碎片，得到了不够紧凑的索引结构，后续不得不通过OPTIMIZE TABLE来重建表并优化填充页面。
+ 为什么非主键索引结构叶子节点存储的是主键值?
+ 减少了出现行移动或者数据页分裂时二级索引的维护工作（当数据需要更新的时候，二级索引不需要修改，只需要修改聚簇索引，一个表只能有一个聚簇索引，其他的都是二级索引，这样只需要修改聚簇索引就可以了，不需要重新构建二级索引）
+ 联合索引的底层存储结构长什么样？
+ "/>
+
+    <meta property="og:title" content="MySQL索引数据结构" />
+<meta property="og:description" content="MySQL索引底层数据结构与算法  什么是索引
+ ==索引==是帮助MySQL高效获取数据的==排好序==的==数据结构==
+那么有哪些数据结构可以做索引呢？
+ 二叉树 红黑树 Hash表 B-Tree  二叉搜索树的问题在于如果插入的数据是递增的话，就会形成一个链表结构，这样查找的效率就大大降低。
+那用二叉平衡树，比如红黑树能解决吗，红黑树不会产生上述现象，但是由于红黑树的非叶子结点下只能存储左右两个结点，如果数据量很大，红黑树的树高会很高，这样需要对磁盘进行多次IO，效率依然不高。
+有没有什么数据结构能解决？首先我们来看B树。
+ B-Tree
+  叶子结点具有相同的深度，叶子结点的指针为空 所有索引元素不重复 叶子结点中的数据索引从左到右递增排列  那么为什么B树依然不是最好的选择呢？
+MySQL的数据都是存放在磁盘上的，索引也是，mysql每进行一次磁盘IO只能获取一页的数据，一页在MySQL中大概是16KB，一个索引的数据越大，那么一页能存储的索引就越少，而B树每个索引存储了数据的全部信息，这就意味着每一页存储的索引变少了。于是对B树进行了改进。
+ B&#43; 树
+  非叶子节点不存储data，只存储索引(冗余)，可以放更多的索引 叶子结点包含所有索引字段 叶子结点用指针链接，提高区间访问的性能  B&#43; 树的非叶子结点能存放更对索引，这样树的高度就降低了，进行磁盘IO的次数也变少，大大提高了搜索效率。
+最后来说说hash，hash也是一种非常高效的数据结构，对索引的key进行一次hash计算就能定位出数据存储的位置，很多时候hash索引要比B&#43;树索引更高效。但是hash不支持范围查询，并且有hash冲突问题。
+MyISAM存储引擎索引实现 MyISAM索引文件和数据文件是分离的(非聚集索引)
+叶子结点上只存储了索引字段和一个指针，指针指向在另一个文件中的数据。
+InnoDB存储引擎索引实现(聚集索引)  表数据文件本身就是按B&#43;树组织的一个索引结构文件 叶子结点包含了完整的数据记录   为什么建议InnoDB表必须建主键，并且推荐使用整形的自增主键
+ 如果设置了主键，那么InnoDB会选择主键作为聚集索引、如果没有显式定义主键，则InnoDB会选择第一个不包含有NULL值的唯一索引作为主键索引、如果也没有这样的唯一索引，则InnoDB会选择内置6字节长的ROWID作为隐含的聚集索引(ROWID随着行记录的写入而主键递增)。
+如果表使用自增主键 那么每次插入新的记录，记录就会顺序添加到当前索引节点的后续位置，主键的顺序按照数据记录的插入顺序排列，自动有序。当一页写满，就会自动开辟一个新的页
+如果使用非自增主键（如果身份证号或学号等） 由于每次插入主键的值近似于随机，因此每次新纪录都要被插到现有索引页得中间某个位置，此时MySQL不得不为了将新记录插到合适位置而移动数据，甚至目标页面可能已经被回写到磁盘上而从缓存中清掉，此时又要从磁盘上读回来，这增加了很多开销，同时频繁的移动、分页操作造成了大量的碎片，得到了不够紧凑的索引结构，后续不得不通过OPTIMIZE TABLE来重建表并优化填充页面。
+ 为什么非主键索引结构叶子节点存储的是主键值?
+ 减少了出现行移动或者数据页分裂时二级索引的维护工作（当数据需要更新的时候，二级索引不需要修改，只需要修改聚簇索引，一个表只能有一个聚簇索引，其他的都是二级索引，这样只需要修改聚簇索引就可以了，不需要重新构建二级索引）
+ 联合索引的底层存储结构长什么样？
+ " />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://changbin93.github.io/post/mysql%E7%B4%A2%E5%BC%95%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" />
+<meta property="article:published_time" content="2020-07-12T02:58:11+08:00" />
+<meta property="article:modified_time" content="2020-07-12T02:58:11+08:00" />
+
+
+  </head>
+  <body>
+    <header class="app-header">
+      <a href="https://changbin93.github.io/"><img class="app-header-avatar" src="/avatar.jpg" alt="John Doe" /></a>
+      <h1>My New Hugo Site</h1>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vehicula turpis sit amet elit pretium.</p>
+      <div class="app-header-social">
+        
+      </div>
+    </header>
+    <main class="app-container">
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class ="post-title">MySQL索引数据结构</h1>
+      <div class="post-meta">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-calendar">
+  <title>calendar</title>
+  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+</svg>
+          Jul 12, 2020
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-clock">
+  <title>clock</title>
+  <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+</svg>
+          1 min read
+        </div></div>
+    </header>
+    <div class="post-content">
+      <h3 id="mysql索引底层数据结构与算法">MySQL索引底层数据结构与算法</h3>
+<blockquote>
+<p>什么是索引</p>
+</blockquote>
+<p>==索引==是帮助MySQL高效获取数据的==排好序==的==数据结构==</p>
+<p>那么有哪些数据结构可以做索引呢？</p>
+<ul>
+<li>二叉树</li>
+<li>红黑树</li>
+<li>Hash表</li>
+<li>B-Tree</li>
+</ul>
+<p>二叉搜索树的问题在于如果插入的数据是递增的话，就会形成一个链表结构，这样查找的效率就大大降低。</p>
+<p>那用二叉平衡树，比如红黑树能解决吗，红黑树不会产生上述现象，但是由于红黑树的非叶子结点下只能存储左右两个结点，如果数据量很大，红黑树的树高会很高，这样需要对磁盘进行多次IO，效率依然不高。</p>
+<p>有没有什么数据结构能解决？首先我们来看B树。</p>
+<blockquote>
+<p>B-Tree</p>
+</blockquote>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimgimage-20200730013143616.png" alt="img"></p>
+<ul>
+<li>叶子结点具有相同的深度，叶子结点的指针为空</li>
+<li>所有索引元素不重复</li>
+<li>叶子结点中的数据索引从左到右递增排列</li>
+</ul>
+<p>那么为什么B树依然不是最好的选择呢？</p>
+<p>MySQL的数据都是存放在磁盘上的，索引也是，mysql每进行一次磁盘IO只能获取一页的数据，一页在MySQL中大概是16KB，一个索引的数据越大，那么一页能存储的索引就越少，而B树每个索引存储了数据的全部信息，这就意味着每一页存储的索引变少了。于是对B树进行了改进。</p>
+<blockquote>
+<p>B+ 树</p>
+</blockquote>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimgimage-20200730014423054.png" alt="img"></p>
+<ul>
+<li>非叶子节点不存储data，只存储索引(冗余)，可以放更多的索引</li>
+<li>叶子结点包含所有索引字段</li>
+<li>叶子结点用指针链接，提高区间访问的性能</li>
+</ul>
+<p>B+ 树的非叶子结点能存放更对索引，这样树的高度就降低了，进行磁盘IO的次数也变少，大大提高了搜索效率。</p>
+<p>最后来说说hash，hash也是一种非常高效的数据结构，对索引的key进行一次hash计算就能定位出数据存储的位置，很多时候hash索引要比B+树索引更高效。但是hash不支持范围查询，并且有hash冲突问题。</p>
+<h3 id="myisam存储引擎索引实现">MyISAM存储引擎索引实现</h3>
+<p>MyISAM索引文件和数据文件是分离的(非聚集索引)</p>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimgimgimage-20200730015655082.png" alt="img"></p>
+<p>叶子结点上只存储了索引字段和一个指针，指针指向在另一个文件中的数据。</p>
+<h3 id="innodb存储引擎索引实现聚集索引">InnoDB存储引擎索引实现(聚集索引)</h3>
+<ul>
+<li>表数据文件本身就是按B+树组织的一个索引结构文件</li>
+<li>叶子结点包含了完整的数据记录</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimage-20200730020303625.png" alt="img"></p>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimage-20200730020309362.png" alt="img"></p>
+<blockquote>
+<p>为什么建议InnoDB表必须建主键，并且推荐使用整形的自增主键</p>
+</blockquote>
+<p>如果设置了主键，那么InnoDB会选择主键作为聚集索引、如果没有显式定义主键，则InnoDB会选择第一个不包含有NULL值的唯一索引作为主键索引、如果也没有这样的唯一索引，则InnoDB会选择内置6字节长的ROWID作为隐含的聚集索引(ROWID随着行记录的写入而主键递增)。</p>
+<p>如果表使用自增主键
+那么每次插入新的记录，记录就会顺序添加到当前索引节点的后续位置，主键的顺序按照数据记录的插入顺序排列，自动有序。当一页写满，就会自动开辟一个新的页</p>
+<p>如果使用非自增主键（如果身份证号或学号等）
+由于每次插入主键的值近似于随机，因此每次新纪录都要被插到现有索引页得中间某个位置，此时MySQL不得不为了将新记录插到合适位置而移动数据，甚至目标页面可能已经被回写到磁盘上而从缓存中清掉，此时又要从磁盘上读回来，这增加了很多开销，同时频繁的移动、分页操作造成了大量的碎片，得到了不够紧凑的索引结构，后续不得不通过OPTIMIZE TABLE来重建表并优化填充页面。</p>
+<blockquote>
+<p>为什么非主键索引结构叶子节点存储的是主键值?</p>
+</blockquote>
+<p>减少了出现行移动或者数据页分裂时二级索引的维护工作（当数据需要更新的时候，二级索引不需要修改，只需要修改聚簇索引，一个表只能有一个聚簇索引，其他的都是二级索引，这样只需要修改聚簇索引就可以了，不需要重新构建二级索引）</p>
+<blockquote>
+<p>联合索引的底层存储结构长什么样？</p>
+</blockquote>
+<p><img src="https://raw.githubusercontent.com/changbin93/picgo_pic/master/imgimage-20200730021210761.png" alt="img"></p>
+
+    </div>
+    <div class="post-footer">
+      
+    </div>
+  </article>
+
+    </main>
+  </body>
+</html>
